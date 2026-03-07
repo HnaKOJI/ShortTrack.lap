@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ラップ計算</title>
+    <style>
+        :root{
+            --bg:#f5f7fb;
+            --card:#ffffff;
+            --muted:#6b7280;
+            --accent:#2563eb;
+            --danger:#ef4444;
+            --radius:12px;
+            --gap:14px;
+        }
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            font-family: "Yu Gothic UI", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
+            background:var(--bg);
+            color:#0f172a;
+            padding:32px;
+        }
+
+        .container{
+            max-width:680px;
+            margin:24px auto;
+            background:var(--card);
+            border-radius:var(--radius);
+            box-shadow:0 8px 30px rgba(15,23,42,0.06);
+            padding:22px;
+            border:1px solid rgba(15,23,42,0.04);
+        }
+
+        .header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:12px;
+            margin-bottom:12px;
+        }
+        .title{
+            font-size:18px;
+            font-weight:600;
+        }
+        .subtitle{
+            font-size:13px;
+            color:var(--muted);
+        }
+
+        .grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:var(--gap);
+            align-items:start;
+        }
+
+        .field{
+            display:flex;
+            flex-direction:column;
+            gap:8px;
+        }
+
+        .radios, .distance{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        label{
+            font-size:14px;
+            cursor:pointer;
+            user-select:none;
+        }
+
+        label.disabled {
+            opacity:0.5;
+            cursor:default;
+            pointer-events:none;
+        }
+
+        input[type="radio"]{
+            accent-color:var(--accent);
+            margin-right:6px;
+        }
+
+        select,input[type="text"]{
+            width:100%;
+            padding:10px 12px;
+            border-radius:10px;
+            border:1px solid #e6eef8;
+            background:#fff;
+            font-size:14px;
+            outline:none;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        input[type="text"]::placeholder{color:#c7d2e0}
+
+        .result{
+            grid-column:1 / -1;
+            display:flex;
+            gap:12px;
+            align-items:center;
+            justify-content:space-between;
+            padding:14px;
+            border-radius:10px;
+            background:linear-gradient(90deg, rgba(37,99,235,0.06), rgba(37,99,235,0.03));
+            border:1px solid rgba(37,99,235,0.08);
+        }
+
+        #lapResult{
+            width:240px;
+            font-weight:700;
+            font-size:16px;
+            text-align:center;
+            border:none;
+            background:transparent;
+        }
+
+        .hint{
+            color:var(--muted);
+            font-size:12px;
+        }
+
+        @media (max-width:560px){
+            .grid{grid-template-columns:1fr}
+            #lapResult{width:100%}
+        }
+    </style>
+</head>
+<body>
+    <div class="container" role="application" aria-label="ラップ計算">
+        <div class="header">
+            <div>
+                <div class="title">ショートトラック ラップ計算</div>
+                <div class="subtitle">性別・級・距離を選んでスタートタイムを入力してください（秒）</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="field">
+                <label class="field-label">性別</label>
+                <div class="radios" role="radiogroup" aria-label="性別">
+                    <label><input type="radio" name="sex" value="男子"> 男子</label>
+                    <label><input type="radio" name="sex" value="女子"> 女子</label>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="gradeSelect">級</label>
+                <select id="gradeSelect" aria-label="級選択">
+                    <option value="">選択してください</option>
+                    <option value="AAA">AAA</option>
+                    <option value="AA">AA</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                </select>
+                <div class="hint">例: 男子・AA を選択</div>
+            </div>
+
+            <div class="field">
+                <label class="field-label">距離</label>
+                <div class="distance" role="radiogroup" aria-label="距離">
+                    <label><input type="radio" name="distance" value="500m">500m</label>
+                    <label><input type="radio" name="distance" value="1000m">1000m</label>
+                    <label><input type="radio" name="distance" value="1500m">1500m</label>
+                    <label id="label-3000"><input type="radio" name="distance" value="3000m">3000m</label>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="startTime">スタートタイム（秒）</label>
+                <input id="startTime" type="text" placeholder="例: 8.2" aria-label="スタートタイム">
+                <div class="hint">小数点可。秒で入力してください。</div>
+            </div>
+
+            <div class="result" aria-live="polite">
+                <div class="hint">ラップ（合計タイム − スタート）÷ 周数</div>
+                <input id="lapResult" type="text" readonly aria-label="ラップ結果">
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // サンプルのタイムデータ（秒）。D/E級は3000mデータなしにしています。
+    const timeData = {
+        '男子': {
+            'AAA': { '500m': 38.5, '1000m': 77.5, '1500m': 116.0, '3000m': 232.0 },
+            'AA':  { '500m': 40.0, '1000m': 79.5, '1500m': 122.0, '3000m': 244.0 },
+            'A':   { '500m': 41.5, '1000m': 82.0, '1500m': 126.5, '3000m': 253.0 },
+            'B':   { '500m': 43.0, '1000m': 85.0, '1500m': 132.0, '3000m': 264.0 },
+            'C':   { '500m': 45.0, '1000m': 90.0, '1500m': 140.0, '3000m': 280.0 },
+            'D':   { '500m': 48.0, '1000m': 96.0, '1500m': 150.0 }, // 3000mなし
+            'E':   { '500m': 52.0, '1000m': 104.0, '1500m': 160.0 } // 3000mなし
+        },
+        '女子': {
+            'AAA': { '500m': 40.5, '1000m': 81.0, '1500m': 122.0, '3000m': 244.0 },
+            'AA':  { '500m': 42.0, '1000m': 84.0, '1500m': 126.0, '3000m': 252.0 },
+            'A':   { '500m': 44.0, '1000m': 88.0, '1500m': 132.0, '3000m': 264.0 },
+            'B':   { '500m': 46.0, '1000m': 92.0, '1500m': 138.0, '3000m': 276.0 },
+            'C':   { '500m': 48.0, '1000m': 96.0, '1500m': 144.0, '3000m': 288.0 },
+            'D':   { '500m': 50.0, '1000m': 100.0, '1500m': 150.0 }, // 3000mなし
+            'E':   { '500m': 54.0, '1000m': 108.0, '1500m': 162.0 } // 3000mなし
+        }
+    };
+
+    const laps = { '500m':4, '1000m':8, '1500m':13, '3000m':26 };
+
+    const startInput = document.getElementById('startTime');
+    const resultInput = document.getElementById('lapResult');
+    const sexRadios = document.querySelectorAll('input[name="sex"]');
+    const distanceRadios = document.querySelectorAll('input[name="distance"]');
+    const gradeSelect = document.getElementById('gradeSelect');
+    const label3000 = document.getElementById('label-3000');
+
+    function getSelected(nodeList){
+        for(const el of nodeList) if(el.checked) return el.value;
+        return null;
+    }
+
+    function updateDistanceAvailability(){
+        const grade = gradeSelect.value;
+        const disable3000 = (grade === 'D' || grade === 'E');
+        distanceRadios.forEach(r => {
+            if(r.value === '3000m'){
+                r.disabled = disable3000;
+                // 見た目更新
+                if(disable3000) {
+                    label3000.classList.add('disabled');
+                    if(r.checked) r.checked = false;
+                } else {
+                    label3000.classList.remove('disabled');
+                }
+            }
+        });
+    }
+
+    function computeLap(){
+        const sex = getSelected(sexRadios);
+        const distance = getSelected(distanceRadios);
+        const grade = gradeSelect.value;
+        const startSec = parseFloat(startInput.value);
+
+        if(!sex || !grade || !distance){
+            resultInput.value = '';
+            return;
+        }
+        if(Number.isNaN(startSec)){
+            resultInput.value = 'スタートタイムを秒で入力';
+            return;
+        }
+
+        const gradeData = timeData[sex] && timeData[sex][grade];
+        const raceTime = gradeData ? gradeData[distance] : undefined;
+        const lapCount = laps[distance];
+
+        if(raceTime == null || lapCount == null){
+            // D/E級に3000mがない場合は明示的メッセージ
+            if(distance === '3000m' && (grade === 'D' || grade === 'E')){
+                resultInput.value = '選択した級（D/E）には3000mのデータがありません';
+            } else {
+                resultInput.value = 'データなし';
+            }
+            return;
+        }
+
+        const lapSeconds = (raceTime - startSec) / lapCount;
+        resultInput.value = isFinite(lapSeconds) ? lapSeconds.toFixed(2) + ' 秒/周' : '計算不可';
+    }
+
+    startInput.addEventListener('input', computeLap);
+    gradeSelect.addEventListener('change', () => { updateDistanceAvailability(); computeLap(); });
+    sexRadios.forEach(r => r.addEventListener('change', computeLap));
+    distanceRadios.forEach(r => r.addEventListener('change', computeLap));
+
+    // 初期状態反映
+    updateDistanceAvailability();
+    </script>
+</body>
+</html>
