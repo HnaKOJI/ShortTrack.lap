@@ -119,6 +119,10 @@
         @media (max-width:560px){
             .grid{grid-template-columns:1fr}
         }
+        /* タイム表用スタイル */
+        .time-table { width:100%; border-collapse:collapse; margin-bottom:18px; }
+        .time-table th, .time-table td { border:1px solid #ddd; padding:6px 8px; text-align:center; }
+        .time-table caption { font-weight:700; margin-bottom:4px; }
     </style>
 </head>
 <body>
@@ -148,6 +152,7 @@
                     <option value="C">C</option>
                     <option value="D">D</option>
                     <option value="E">E</option>
+                    <option value="F">F</option>
                 </select>
                 <div class="hint">例: 男子・AA を選択</div>
             </div>
@@ -171,37 +176,85 @@
             <div class="result" aria-live="polite">
                 <div class="hint">ラップ = (合計タイム − スタート) ÷ 周数（500:4 / 1000:8 / 1500:13 / 3000:26）</div>
                 <input id="lapResult" type="text" readonly aria-label="ラップ結果">
+                <!-- 追加: 1周タイム入力と予想級 -->
+                <div class="hint" style="margin-top:8px;">1周タイムを入力すると、該当するバッジ級を判定します</div>
+                <input id="lapTime" type="text" placeholder="例: 10.0" aria-label="1周タイム">
+                <div style="display:flex; gap:8px; margin-top:4px;">
+                    <input id="gradeResult" type="text" readonly aria-label="予想バッジ級">
+                    <input id="totalTimeResult" type="text" readonly aria-label="合計タイム">
+                </div>
             </div>
         </div>
     </div>
+    <!-- タイム表を表示する領域 -->
+    <div id="tablesContainer" class="container"></div>
 
     <script>
     // 提供いただいたタイム（500,1000,1500,3000 の順）
     const timeData = {
         '男子': {
-            'AAA': { '500m': 42.600, '1000m': 88.500, '1500m': 138.000, '3000m': 290.000 },
-            'AA':  { '500m': 45.000, '1000m': 93.000, '1500m': 145.000, '3000m': 308.000 },
-            'A':   { '500m': 48.500, '1000m':100.000, '1500m': 158.000, '3000m': 330.000 },
+            'AAA': { '500m': 41.800, '1000m': 86.500, '1500m': 135.800, '3000m': 286.000 },
+            'AA':  { '500m': 44.000, '1000m': 91.000, '1500m': 143.000, '3000m': 302.000 },
+            'A':   { '500m': 48.000, '1000m': 99.500, '1500m': 156.000, '3000m': 329.000 },
             'B':   { '500m': 53.000, '1000m':110.000, '1500m': 172.000, '3000m': 358.000 },
             'C':   { '500m': 59.000, '1000m':125.000, '1500m': 192.000, '3000m': 392.000 },
             'D':   { '500m': 66.000, '1000m':140.000, '1500m': 215.000 }, // 3000mなし
-            'E':   { '500m': 83.000, '1000m':176.000, '1500m': 270.000 }  // 3000mなし
+            'E':   { '500m': 83.000, '1000m':176.000, '1500m': 270.000 },  // 3000mなし
+            'F':   { '500m': 85.000, '1000m':221.000, '1500m': 338.000 }   // 3000mなし
         },
         '女子': {
-            'AAA': { '500m': 46.000, '1000m': 95.000, '1500m': 148.000, '3000m': 308.000 },
-            'AA':  { '500m': 48.500, '1000m':100.000, '1500m': 156.000, '3000m': 318.000 },
-            'A':   { '500m': 53.000, '1000m':109.000, '1500m': 171.000, '3000m': 345.000 },
+            'AAA': { '500m': 45.000, '1000m': 93.000, '1500m': 145.000, '3000m': 302.000 },
+            'AA':  { '500m': 47.000, '1000m': 98.000, '1500m': 153.000, '3000m': 320.000 },
+            'A':   { '500m': 51.000, '1000m':107.000, '1500m': 168.000, '3000m': 352.000 },
             'B':   { '500m': 58.000, '1000m':121.000, '1500m': 190.000, '3000m': 398.000 },
             'C':   { '500m': 67.000, '1000m':142.000, '1500m': 218.000, '3000m': 445.000 },
             'D':   { '500m': 78.000, '1000m':165.000, '1500m': 254.000 }, // 3000mなし
-            'E':   { '500m': 95.000, '1000m':201.000, '1500m': 309.000 }  // 3000mなし
+            'E':   { '500m': 95.000, '1000m':201.000, '1500m': 309.000 },  // 3000mなし
+            'F':   { '500m': 88.000, '1000m':246.000, '1500m': 378.000 }   // 3000mなし
         }
     };
 
     const laps = { '500m':4, '1000m':8, '1500m':13, '3000m':26 };
 
+    // 表示用に時間をフォーマット
+    function formatTime(sec){
+        if(!isFinite(sec)) return '';
+        if(sec >= 60){
+            const m = Math.floor(sec/60);
+            const s = (sec - m*60).toFixed(2);
+            return `${m}分${s}秒`;
+        }
+        return sec.toFixed(2) + ' 秒';
+    }
+
+    function renderTimeTables(){
+        const sexes = ['男子','女子'];
+        const grades = ['AAA','AA','A','B','C','D','E','F'];
+        const distances = ['500m','1000m','1500m','3000m'];
+        let html = '';
+        for(const sex of sexes){
+            html += `<table class="time-table"><caption>${sex} タイム表</caption><thead><tr><th>級\距離</th>`;
+            for(const d of distances) html += `<th>${d}</th>`;
+            html += `</tr></thead><tbody>`;
+            for(const g of grades){
+                html += `<tr><th>${g}</th>`;
+                for(const d of distances){
+                    const val = (timeData[sex] && timeData[sex][g] && timeData[sex][g][d]) || null;
+                    html += `<td>${val!=null?formatTime(val):''}</td>`;
+                }
+                html += `</tr>`;
+            }
+            html += `</tbody></table>`;
+        }
+        document.getElementById('tablesContainer').innerHTML = html;
+    }
+
     const startInput = document.getElementById('startTime');
     const resultInput = document.getElementById('lapResult');
+    const lapTimeInput = document.getElementById('lapTime');
+    const gradeResult = document.getElementById('gradeResult');
+    const totalTimeResult = document.getElementById('totalTimeResult');
+
     const sexRadios = document.querySelectorAll('input[name="sex"]');
     const distanceRadios = document.querySelectorAll('input[name="distance"]');
     const gradeSelect = document.getElementById('gradeSelect');
@@ -259,14 +312,72 @@
         resultInput.value = isFinite(lapSeconds) ? lapSeconds.toFixed(2) + ' 秒/周' : '計算不可';
     }
 
+    function computeGradePrediction(){
+        const sex = getSelected(sexRadios);
+        const distance = getSelected(distanceRadios);
+        const lapSec = parseFloat(lapTimeInput.value);
+        const startSec = parseFloat(startInput.value);
+
+        if(!sex || !distance){
+            gradeResult.value = '';
+            return;
+        }
+        if(Number.isNaN(lapSec)){
+            gradeResult.value = '1周タイムを秒で入力';
+            return;
+        }
+        if(Number.isNaN(startSec)){
+            gradeResult.value = 'スタートタイムを秒で入力';
+            return;
+        }
+        const lapCount = laps[distance];
+        if(lapCount == null){
+            gradeResult.value = '';
+            return;
+        }
+        // 合計タイム = スタート + 一周 * 周数
+        const totalTime = startSec + lapSec * lapCount;
+        const gradeOrder = ['AAA','AA','A','B','C','D','E','F'];
+        let found = null;
+        const gradesForSex = timeData[sex];
+        if(gradesForSex){
+            for(const g of gradeOrder){
+                const data = gradesForSex[g];
+                if(data && data[distance] != null){
+                    if(totalTime <= data[distance]){
+                        found = g;
+                        break;
+                    }
+                }
+            }
+        }
+        gradeResult.value = found ? found : '級外';
+        // 合計タイム表示（60秒超は分表示）
+        if(isFinite(totalTime)){
+            if(totalTime >= 60){
+                const mins = Math.floor(totalTime / 60);
+                const secs = (totalTime - mins * 60).toFixed(2);
+                totalTimeResult.value = `${mins}分${secs}秒`;
+            } else {
+                totalTimeResult.value = totalTime.toFixed(2) + ' 秒';
+            }
+        } else {
+            totalTimeResult.value = '';
+        }
+    }
+
     // イベント
-    startInput.addEventListener('input', computeLap);
-    gradeSelect.addEventListener('change', () => { update3000Availability(); computeLap(); });
-    sexRadios.forEach(r => r.addEventListener('change', () => { update3000Availability(); computeLap(); }));
-    distanceRadios.forEach(r => r.addEventListener('change', computeLap));
+    startInput.addEventListener('input', () => { computeLap(); computeGradePrediction(); });
+    lapTimeInput.addEventListener('input', computeGradePrediction);
+
+    gradeSelect.addEventListener('change', () => { update3000Availability(); computeLap(); computeGradePrediction(); });
+    sexRadios.forEach(r => r.addEventListener('change', () => { update3000Availability(); computeLap(); computeGradePrediction(); }));
+    distanceRadios.forEach(r => r.addEventListener('change', () => { computeLap(); computeGradePrediction(); }));
 
     // 初期反映
+    renderTimeTables();
     update3000Availability();
+    computeGradePrediction();
     </script>
 </body>
 </html>
