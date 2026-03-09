@@ -238,7 +238,7 @@
         const distances = ['500m','1000m','1500m','3000m'];
         let html = '';
         for(const sex of sexes){
-            html += `<table class="time-table"><caption>${sex} タイム表</caption><thead><tr><th>級\距離</th>`;
+            html += `<table class="time-table"><caption>${sex} タイム表</caption><thead><tr><th></th>`;
             for(const d of distances) html += `<th>${d}</th>`;
             html += `</tr></thead><tbody>`;
             for(const g of grades){
@@ -323,7 +323,7 @@
         const lapSec = parseFloat(lapTimeInput.value);
         const startSec = parseFloat(startInput.value);
 
-        if(!sex || !distance){
+        if(!sex){
             gradeResult.value = '';
             return;
         }
@@ -335,11 +335,7 @@
             gradeResult.value = 'スタートタイムを秒で入力';
             return;
         }
-        const lapCount = laps[distance];
-        if(lapCount == null){
-            gradeResult.value = '';
-            return;
-        }
+        const lapCount = distance ? laps[distance] : 4; // 距離未選択時は500mの周数を使用
         // 合計タイム = スタート + 一周 * 周数
         const totalTime = startSec + lapSec * lapCount;
         const gradeOrder = ['AAA','AA','A','B','C','D','E','F'];
@@ -348,8 +344,8 @@
         if(gradesForSex){
             for(const g of gradeOrder){
                 const data = gradesForSex[g];
-                if(data && data[distance] != null){
-                    if(totalTime <= data[distance]){
+                if(data && data[distance || '500m'] != null){
+                    if(totalTime <= data[distance || '500m']){
                         found = g;
                         break;
                     }
