@@ -174,7 +174,7 @@
 
             <div class="field">
                 <label for="startTime">スタートタイム（秒）</label>
-                <input id="startTime" type="text" placeholder="例: 8.2" aria-label="スタートタイム">
+                <input id="startTime" type="text" placeholder="例: 8.2秒" aria-label="スタートタイム">
                 <div class="hint">小数点可。合計タイムから引く秒数です。</div>
             </div>
 
@@ -183,10 +183,10 @@
                 <input id="lapResult" type="text" readonly aria-label="ラップ結果">
                 <!-- 追加: 1周タイム入力と予想級 -->
                 <div class="hint" style="margin-top:8px;">1周タイムを入力すると、該当するバッジ級を判定します</div>
-                <input id="lapTime" type="text" placeholder="例: 10.0" aria-label="1周タイム">
+                <input id="lapTime" type="text" placeholder="例: 10.0秒(スタートタイムの入力と性別と距離を選択してください)" aria-label="1周タイム">
                 <div style="display:flex; gap:8px; margin-top:4px;">
-                    <input id="gradeResult" type="text" readonly aria-label="予想バッジ級">
-                    <input id="totalTimeResult" type="text" readonly aria-label="合計タイム">
+                    <input id="gradeResult" type="text" placeholder="予想バッジ級" readonly aria-label="予想バッジ級">
+                    <input id="totalTimeResult" type="text" placeholder="合計タイム" readonly aria-label="合計タイム">
                 </div>
             </div>
         </div>
