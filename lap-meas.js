@@ -129,6 +129,51 @@ function deleteRecord(index) {
     renderSavedRecords();
 }
 
+function renameRecord(index) {
+    const records = getSavedRecords();
+    const targetRecord = records[index];
+    if (!targetRecord) {
+        return;
+    }
+
+    const currentName = String(targetRecord.name || '');
+    const inputName = window.prompt('新しい保存名を入力してください。', currentName);
+    if (inputName === null) {
+        return;
+    }
+
+    const normalizedName = inputName.replace(/\s+/g, ' ').trim().slice(0, 60);
+    if (normalizedName === '') {
+        window.alert('保存名を入力してください。');
+        return;
+    }
+
+    targetRecord.name = normalizedName;
+    setSavedRecords(records);
+    renderSavedRecords();
+}
+
+function updateLapComment(recordIndex, lapIndex, inputValue) {
+    const records = getSavedRecords();
+    const targetRecord = records[recordIndex];
+    if (!targetRecord || !Array.isArray(targetRecord.laps)) {
+        return;
+    }
+
+    const targetLap = targetRecord.laps[lapIndex];
+    if (!targetLap) {
+        return;
+    }
+
+    const comment = String(inputValue || '')
+        .replace(/[\r\n]+/g, ' ')
+        .trim()
+        .slice(0, 40);
+
+    targetLap.comment = comment;
+    setSavedRecords(records);
+}
+
 function renderSavedRecords() {
     const records = getSavedRecords();
     if (records.length === 0) {
@@ -140,9 +185,6 @@ function renderSavedRecords() {
     records.forEach((record, index) => {
         const item = document.createElement('div');
         item.className = 'saved-record-item';
-        const lapText = Array.isArray(record.laps) && record.laps.length > 0
-            ? record.laps.map((lap) => `Lap ${lap.lap}: ${lap.displaySeconds.toFixed(2)}`).join(' / ')
-            : 'ラップなし';
         const createdAtText = record.createdAt ? formatDateTime(new Date(record.createdAt)) : '';
 
         const heading = document.createElement('div');
@@ -183,15 +225,73 @@ function renderSavedRecords() {
             }
         });
 
+        const renameButton = document.createElement('button');
+        renameButton.type = 'button';
+        renameButton.className = 'edit-record-button';
+        renameButton.textContent = '名前変更';
+        renameButton.addEventListener('click', () => {
+            renameRecord(index);
+        });
+
+        const actionGroup = document.createElement('div');
+        actionGroup.className = 'saved-record-actions';
+        actionGroup.appendChild(renameButton);
+        actionGroup.appendChild(deleteButton);
+
         heading.appendChild(checkboxLabel);
         heading.appendChild(title);
-        heading.appendChild(deleteButton);
+        heading.appendChild(actionGroup);
 
         const elapsed = document.createElement('p');
-        elapsed.textContent = `計測時間: ${formatTime(record.elapsedMilliseconds || 0)}`;
+        elapsed.textContent = `タイム: ${formatTime(record.elapsedMilliseconds || 0)}`;
 
-        const laps = document.createElement('p');
-        laps.textContent = `ラップ: ${lapText}`;
+        const laps = document.createElement('div');
+        laps.className = 'saved-lap-list';
+
+        const lapsTitle = document.createElement('p');
+        lapsTitle.textContent = 'ラップ';
+        laps.appendChild(lapsTitle);
+
+        if (Array.isArray(record.laps) && record.laps.length > 0) {
+            record.laps.forEach((lap, lapIndex) => {
+                const lapRow = document.createElement('div');
+                lapRow.className = 'saved-lap-row';
+
+                const lapLabel = document.createElement('span');
+                lapLabel.className = 'saved-lap-label';
+                lapLabel.textContent = `${lap.lap}`; // ラップ周数
+
+                const lapCommentInput = document.createElement('input');
+                lapCommentInput.type = 'text';
+                lapCommentInput.className = 'saved-lap-comment';
+                lapCommentInput.placeholder = 'Name';
+                lapCommentInput.maxLength = 40;
+                lapCommentInput.value = String(lap.comment || '');
+                lapCommentInput.addEventListener('change', () => {
+                    updateLapComment(index, lapIndex, lapCommentInput.value);
+                });
+                lapCommentInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        lapCommentInput.blur();
+                    }
+                });
+
+                const lapTime = document.createElement('span');
+                lapTime.className = 'saved-lap-time';
+                lapTime.textContent = lap.displaySeconds.toFixed(2);
+
+                lapRow.appendChild(lapLabel);
+                lapRow.appendChild(lapCommentInput);
+                lapRow.appendChild(lapTime);
+                laps.appendChild(lapRow);
+            });
+        } else {
+            const emptyLap = document.createElement('p');
+            emptyLap.className = 'saved-lap-empty';
+            emptyLap.textContent = 'ラップなし';
+            laps.appendChild(emptyLap);
+        }
 
         item.appendChild(heading);
         item.appendChild(elapsed);
@@ -410,8 +510,10 @@ function exportSavedRecordsToPdf() {
         '.record-name { font-weight: 700; margin-bottom: 4px; }',
         '.record-meta { color: #6b7280; font-size: 11px; margin-bottom: 4px; }',
         '.record-elapsed { margin-bottom: 4px; }',
-        '.lap-line { margin: 0 0 2px; font-weight: 700; display: grid; grid-template-columns: 56px 1fr; align-items: center; }',
+        '.lap-line { margin: 0 0 2px; font-weight: 700; display: grid; grid-template-columns: 56px minmax(0, 1fr) 72px; align-items: center; column-gap: 8px; }',
         '.lap-label { padding-right: 8px; font-variant-numeric: tabular-nums; }',
+        '.lap-comment { font-weight: 400; color: #374151; font-size: 11px; overflow-wrap: anywhere; }',
+        '.lap-comment-empty { color: #9ca3af; }',
         '.lap-time { padding-left: 8px; border-left: 1px solid #9ca3af; text-align: right; }',
         '.lap-empty { color: #6b7280; }'
     ].join('');
@@ -453,13 +555,19 @@ function exportSavedRecordsToPdf() {
                         : lap.displaySeconds.toFixed(2);
                     const lapLabel = doc.createElement('span');
                     lapLabel.className = 'lap-label';
-                    lapLabel.textContent = `Lap ${lap.lap}`;
+                    lapLabel.textContent = `${lap.lap}`; // PDFラップ周数
+
+                    const lapComment = doc.createElement('span');
+                    const normalizedComment = String(lap.comment || '').trim();
+                    lapComment.className = normalizedComment === '' ? 'lap-comment lap-comment-empty' : 'lap-comment';
+                    lapComment.textContent = normalizedComment === '' ? '-' : normalizedComment;
 
                     const lapTime = doc.createElement('span');
                     lapTime.className = 'lap-time';
                     lapTime.textContent = lapDisplay;
 
                     line.appendChild(lapLabel);
+                    line.appendChild(lapComment);
                     line.appendChild(lapTime);
                     card.appendChild(line);
                 });
