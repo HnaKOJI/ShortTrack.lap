@@ -185,6 +185,40 @@ input[type="text"]::placeholder{color:#c7d2e0}
     margin-bottom: var(--gap);
 }
 
+.lap-meas-buttons #startButton,
+.lap-meas-buttons #lapButton {
+    width: calc(50% - (var(--gap) / 2));
+    height: 150px;
+    padding: 0 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    transition: background 0.2s;
+}
+
+.lap-meas-buttons #startButton {
+    background: var(--accent);
+}
+
+.lap-meas-buttons #startButton:hover {
+    background: #1d4ed8;
+}
+
+.lap-meas-buttons #lapButton {
+    background: #0ea5e9;
+}
+
+.lap-meas-buttons #lapButton:hover:not(:disabled) {
+    background: #0284c7;
+}
+
+.lap-meas-buttons #lapButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 #startButton, #tapButton {
     padding: 10px 20px;
     font-size: 16px;
