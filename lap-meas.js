@@ -353,6 +353,13 @@ function getSelectedRecordsForExport() {
         .filter((record) => Boolean(record));
 }
 
+const SAFARI_LAP_OFFSET_MS = 12;
+
+function isSafari() {
+    const ua = navigator.userAgent;
+    return /Safari/.test(ua) && !/Chrome/.test(ua) && !/Chromium/.test(ua);
+}
+
 function getAuditoryOffsetMilliseconds() {
     return getOffsetMilliseconds(auditoryOffsetInput);
 }
@@ -363,7 +370,8 @@ function getCorrectedElapsedMilliseconds(now) {
 
 function getCorrectedLapElapsed(now) {
     const visualOffset = getOffsetMilliseconds(visualOffsetInput);
-    return Math.max(0, (now - previousLapTimestamp) - visualOffset);
+    const safariOffset = isSafari() ? SAFARI_LAP_OFFSET_MS : 0;
+    return Math.max(0, (now - previousLapTimestamp) - visualOffset - safariOffset);
 }
 
 function getLapDisplayMilliseconds(lapElapsed, lapNumber) {
