@@ -509,6 +509,7 @@ function exportSavedRecordsToPdf() {
 
     const style = doc.createElement('style');
     style.textContent = [
+        '@page { size: A4; margin: 10mm; }',
         'body { font-family: "Yu Gothic UI", "Segoe UI", sans-serif; margin: 24px; color: #111827; font-size: 150%; }',
         '.record-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }',
         '.record-card { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-size: 18px; break-inside: avoid; }',
