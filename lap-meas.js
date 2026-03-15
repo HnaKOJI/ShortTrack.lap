@@ -185,6 +185,9 @@ function renderSavedRecords() {
     records.forEach((record, index) => {
         const item = document.createElement('div');
         item.className = 'saved-record-item';
+        if (Array.isArray(record.laps) && record.laps.length >= 15) {
+            item.classList.add('saved-record-item-wide');
+        }
         const createdAtText = record.createdAt ? formatDateTime(new Date(record.createdAt)) : '';
 
         const heading = document.createElement('div');
@@ -250,7 +253,25 @@ function renderSavedRecords() {
         lapsTitle.textContent = 'ラップ';
         laps.appendChild(lapsTitle);
 
+        const lapColumns = document.createElement('div');
+        lapColumns.className = 'saved-lap-columns';
+        laps.appendChild(lapColumns);
+
         if (Array.isArray(record.laps) && record.laps.length > 0) {
+            const lapsPerColumn = 14;
+            const columnCount = Math.ceil(record.laps.length / lapsPerColumn);
+            lapColumns.style.gridTemplateColumns = `repeat(${columnCount}, minmax(0, 1fr))`;
+            if (columnCount > 1) {
+                lapColumns.classList.add('saved-lap-columns-multi');
+            }
+
+            const columns = Array.from({ length: columnCount }, () => {
+                const column = document.createElement('div');
+                column.className = 'saved-lap-column';
+                lapColumns.appendChild(column);
+                return column;
+            });
+
             record.laps.forEach((lap, lapIndex) => {
                 const lapRow = document.createElement('div');
                 lapRow.className = 'saved-lap-row';
@@ -277,18 +298,23 @@ function renderSavedRecords() {
 
                 const lapTime = document.createElement('span');
                 lapTime.className = 'saved-lap-time';
-                lapTime.textContent = lap.displaySeconds.toFixed(2);
+                const lapDisplay = lap.elapsedMilliseconds != null
+                    ? formatLapDisplaySeconds(lap.elapsedMilliseconds, lap.lap)
+                    : lap.displaySeconds.toFixed(2);
+                lapTime.textContent = lapDisplay;
 
                 lapRow.appendChild(lapLabel);
                 lapRow.appendChild(lapCommentInput);
                 lapRow.appendChild(lapTime);
-                laps.appendChild(lapRow);
+
+                const columnIndex = Math.floor(lapIndex / lapsPerColumn);
+                columns[columnIndex].appendChild(lapRow);
             });
         } else {
             const emptyLap = document.createElement('p');
             emptyLap.className = 'saved-lap-empty';
             emptyLap.textContent = 'ラップなし';
-            laps.appendChild(emptyLap);
+            lapColumns.appendChild(emptyLap);
         }
 
         item.appendChild(heading);
@@ -337,19 +363,19 @@ function getCorrectedElapsedMilliseconds(now) {
 
 function getCorrectedLapElapsed(now) {
     const visualOffset = getOffsetMilliseconds(visualOffsetInput);
-    return Math.max(0, (now - previousLapTimestamp) + visualOffset);
+    return Math.max(0, (now - previousLapTimestamp) - visualOffset);
 }
 
-function getLapDisplayMilliseconds(lapElapsed) {
-    if (lapElapsed >= 10000) {
+function getLapDisplayMilliseconds(lapElapsed, lapNumber) {
+    if (lapNumber !== 1 && lapElapsed >= 10000) {
         return lapElapsed - 10000;
     }
 
     return lapElapsed;
 }
 
-function formatLapDisplaySeconds(lapElapsed) {
-    const displayMilliseconds = getLapDisplayMilliseconds(lapElapsed);
+function formatLapDisplaySeconds(lapElapsed, lapNumber) {
+    const displayMilliseconds = getLapDisplayMilliseconds(lapElapsed, lapNumber);
     return (displayMilliseconds / 1000).toFixed(2);
 }
 
@@ -384,7 +410,7 @@ function renderLapResults() {
         lapRow.className = `lap-row${isFastest ? ' lap-row-fastest' : ''}`;
         lapRow.innerHTML = `
             <span>Lap ${record.lap}</span>
-            <span>${formatLapDisplaySeconds(record.elapsed)}</span>
+            <span>${formatLapDisplaySeconds(record.elapsed, record.lap)}</span>
         `;
         lapResults.appendChild(lapRow);
     }
@@ -472,7 +498,7 @@ function saveCurrentRecord() {
     const laps = lapRecords.map((record) => ({
         lap: record.lap,
         elapsedMilliseconds: record.elapsed,
-        displaySeconds: Number.parseFloat(formatLapDisplaySeconds(record.elapsed))
+        displaySeconds: Number.parseFloat(formatLapDisplaySeconds(record.elapsed, record.lap))
     }));
 
     const record = {
@@ -511,84 +537,123 @@ function exportSavedRecordsToPdf() {
     style.textContent = [
         '@page { size: A4; margin: 10mm; }',
         'body { font-family: "Yu Gothic UI", "Segoe UI", sans-serif; margin: 24px; color: #111827; font-size: 150%; }',
+        '.record-group { margin-bottom: 16px; }',
         '.record-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }',
         '.record-card { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-size: 18px; break-inside: avoid; }',
         '.record-name { font-weight: 700; margin-bottom: 4px; }',
-        '.record-meta { color: #6b7280; font-size: 16.5px; margin-bottom: 4px; }',
         '.record-elapsed { margin-bottom: 4px; }',
-        '.lap-line { margin: 0 0 2px; font-weight: 700; display: grid; grid-template-columns: 56px minmax(0, 1fr) 72px; align-items: center; column-gap: 8px; }',
-        '.lap-label { padding-right: 8px; font-variant-numeric: tabular-nums; }',
-        '.lap-comment { font-weight: 400; color: #374151; font-size: 16.5px; overflow-wrap: anywhere; }',
+        '.lap-line { margin: 0 0 2px; font-weight: 700; display: grid; grid-template-columns: 36px minmax(0, 1fr) 56px; align-items: center; column-gap: 6px; }',
+        '.lap-label { padding-left: 5px; padding-right: 0; font-variant-numeric: tabular-nums; text-align: left; }',
+        '.lap-comment { font-weight: 400; color: #374151; font-size: 16.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }',
         '.lap-comment-empty { color: #9ca3af; }',
-        '.lap-time { padding-left: 8px; border-left: 1px solid #9ca3af; text-align: right; }',
+        '.lap-time { padding-left: 6px; border-left: 1px solid #9ca3af; text-align: right; }',
         '.lap-empty { color: #6b7280; }'
     ].join('');
     doc.head.appendChild(style);
 
+    const sortedRecords = [...records].sort((a, b) => {
+        const aLapCount = Array.isArray(a.laps) ? a.laps.length : 0;
+        const bLapCount = Array.isArray(b.laps) ? b.laps.length : 0;
+        if (aLapCount !== bLapCount) {
+            return aLapCount - bLapCount;
+        }
+
+        const aName = String(a.name || '');
+        const bName = String(b.name || '');
+        const byName = aName.localeCompare(bName, 'ja', { numeric: true, sensitivity: 'base' });
+        if (byName !== 0) {
+            return byName;
+        }
+
+        const aCreatedAt = new Date(a.createdAt || 0).getTime();
+        const bCreatedAt = new Date(b.createdAt || 0).getTime();
+        return aCreatedAt - bCreatedAt;
+    });
+
+    const groupedRecords = [];
+    const GROUP_DIFF = 2;
+    sortedRecords.forEach((record) => {
+        const lapCount = Array.isArray(record.laps) ? record.laps.length : 0;
+        const currentGroup = groupedRecords[groupedRecords.length - 1];
+        if (!currentGroup) {
+            groupedRecords.push([record]);
+            return;
+        }
+
+        const previous = currentGroup[currentGroup.length - 1];
+        const previousLapCount = Array.isArray(previous.laps) ? previous.laps.length : 0;
+        if (Math.abs(lapCount - previousLapCount) <= GROUP_DIFF) {
+            currentGroup.push(record);
+            return;
+        }
+
+        groupedRecords.push([record]);
+    });
+
     const COLS = 4;
-    for (let rowStart = 0; rowStart < records.length; rowStart += COLS) {
-        const grid = doc.createElement('div');
-        grid.className = 'record-grid';
+    groupedRecords.forEach((group) => {
+        const groupWrapper = doc.createElement('div');
+        groupWrapper.className = 'record-group';
 
-        const rowRecords = records.slice(rowStart, rowStart + COLS);
-        rowRecords.forEach((record) => {
-            const card = doc.createElement('div');
-            card.className = 'record-card';
+        for (let rowStart = 0; rowStart < group.length; rowStart += COLS) {
+            const grid = doc.createElement('div');
+            grid.className = 'record-grid';
 
-            const nameDiv = doc.createElement('div');
-            nameDiv.className = 'record-name';
-            nameDiv.textContent = String(record.name || '名称未設定');
-            card.appendChild(nameDiv);
+            const rowRecords = group.slice(rowStart, rowStart + COLS);
+            rowRecords.forEach((record) => {
+                const card = doc.createElement('div');
+                card.className = 'record-card';
 
-            if (record.createdAt) {
-                const metaDiv = doc.createElement('div');
-                metaDiv.className = 'record-meta';
-                metaDiv.textContent = formatDateTime(new Date(record.createdAt));
-                card.appendChild(metaDiv);
-            }
+                const nameDiv = doc.createElement('div');
+                nameDiv.className = 'record-name';
+                nameDiv.textContent = String(record.name || '名称未設定');
+                card.appendChild(nameDiv);
 
-            const elapsedDiv = doc.createElement('div');
-            elapsedDiv.className = 'record-elapsed';
-            elapsedDiv.textContent = formatTime(record.elapsedMilliseconds || 0);
-            card.appendChild(elapsedDiv);
+                const elapsedDiv = doc.createElement('div');
+                elapsedDiv.className = 'record-elapsed';
+                elapsedDiv.textContent = formatTime(record.elapsedMilliseconds || 0);
+                card.appendChild(elapsedDiv);
 
-            if (Array.isArray(record.laps) && record.laps.length > 0) {
-                record.laps.forEach((lap) => {
-                    const line = doc.createElement('div');
-                    line.className = 'lap-line';
-                    const lapDisplay = lap.elapsedMilliseconds != null
-                        ? formatLapDisplaySeconds(lap.elapsedMilliseconds)
-                        : lap.displaySeconds.toFixed(2);
-                    const lapLabel = doc.createElement('span');
-                    lapLabel.className = 'lap-label';
-                    lapLabel.textContent = `${lap.lap}`; // PDFラップ周数
+                if (Array.isArray(record.laps) && record.laps.length > 0) {
+                    record.laps.forEach((lap) => {
+                        const line = doc.createElement('div');
+                        line.className = 'lap-line';
+                        const lapDisplay = lap.elapsedMilliseconds != null
+                            ? formatLapDisplaySeconds(lap.elapsedMilliseconds, lap.lap)
+                            : lap.displaySeconds.toFixed(2);
+                        const lapLabel = doc.createElement('span');
+                        lapLabel.className = 'lap-label';
+                        lapLabel.textContent = `${lap.lap}`; // PDFラップ周数
 
-                    const lapComment = doc.createElement('span');
-                    const normalizedComment = String(lap.comment || '').trim();
-                    lapComment.className = normalizedComment === '' ? 'lap-comment lap-comment-empty' : 'lap-comment';
-                    lapComment.textContent = normalizedComment === '' ? '-' : normalizedComment;
+                        const lapComment = doc.createElement('span');
+                        const normalizedComment = String(lap.comment || '').trim();
+                        lapComment.className = normalizedComment === '' ? 'lap-comment lap-comment-empty' : 'lap-comment';
+                        lapComment.textContent = normalizedComment === '' ? '-' : normalizedComment;
 
-                    const lapTime = doc.createElement('span');
-                    lapTime.className = 'lap-time';
-                    lapTime.textContent = lapDisplay;
+                        const lapTime = doc.createElement('span');
+                        lapTime.className = 'lap-time';
+                        lapTime.textContent = lapDisplay;
 
-                    line.appendChild(lapLabel);
-                    line.appendChild(lapComment);
-                    line.appendChild(lapTime);
-                    card.appendChild(line);
-                });
-            } else {
-                const empty = doc.createElement('div');
-                empty.className = 'lap-empty';
-                empty.textContent = 'ラップなし';
-                card.appendChild(empty);
-            }
+                        line.appendChild(lapLabel);
+                        line.appendChild(lapComment);
+                        line.appendChild(lapTime);
+                        card.appendChild(line);
+                    });
+                } else {
+                    const empty = doc.createElement('div');
+                    empty.className = 'lap-empty';
+                    empty.textContent = 'ラップなし';
+                    card.appendChild(empty);
+                }
 
-            grid.appendChild(card);
-        });
+                grid.appendChild(card);
+            });
 
-        doc.body.appendChild(grid);
-    }
+            groupWrapper.appendChild(grid);
+        }
+
+        doc.body.appendChild(groupWrapper);
+    });
 
     exportWindow.document.close();
     exportWindow.focus();

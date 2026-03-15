@@ -430,10 +430,16 @@ input[type="text"]::placeholder{color:#c7d2e0}
 
 .saved-record-item {
     padding: 10px 12px;
+    padding-bottom: 46px;
     border-radius: 10px;
     background: #fff;
     border: 1px solid #e6eef8;
     min-width: 0;
+    position: relative;
+}
+
+.saved-record-item-wide {
+    grid-column: 1 / -1;
 }
 
 .saved-record-heading {
@@ -468,7 +474,10 @@ input[type="text"]::placeholder{color:#c7d2e0}
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-top: 8px;
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
 }
 
 .edit-record-button {
@@ -519,6 +528,36 @@ input[type="text"]::placeholder{color:#c7d2e0}
 
 .saved-lap-list {
     margin-top: 2px;
+}
+
+.saved-lap-columns {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    position: relative;
+}
+
+.saved-lap-columns.saved-lap-columns-multi::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: #9ca3af;
+    pointer-events: none;
+}
+
+.saved-lap-column {
+    min-width: 0;
+}
+
+.saved-lap-columns.saved-lap-columns-multi .saved-lap-column:first-child {
+    padding-right: 10px;
+}
+
+.saved-lap-columns.saved-lap-columns-multi .saved-lap-column:last-child {
+    padding-left: 10px;
 }
 
 .saved-lap-row {
@@ -594,14 +633,6 @@ input[type="text"]::placeholder{color:#c7d2e0}
         text-align: left;
     }
 
-    .saved-record-footer {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .saved-record-actions {
-        width: 100%;
-    }
 }
 
 /* lap-calculation */
