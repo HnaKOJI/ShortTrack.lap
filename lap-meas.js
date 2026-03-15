@@ -355,9 +355,12 @@ function getSelectedRecordsForExport() {
 
 const SAFARI_LAP_OFFSET_MS = 12;
 
-function isSafari() {
+function isMobileSafari() {
     const ua = navigator.userAgent;
-    return /Safari/.test(ua) && !/Chrome/.test(ua) && !/Chromium/.test(ua);
+    if (/iPhone|iPod/.test(ua) && /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua) && !/FxiOS/.test(ua)) return true;
+    if (/iPad/.test(ua) && /Safari/.test(ua) && !/Chrome/.test(ua)) return true;
+    if (/Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome/.test(ua) && !/Chromium/.test(ua) && navigator.maxTouchPoints > 1) return true;
+    return false;
 }
 
 function getAuditoryOffsetMilliseconds() {
@@ -365,12 +368,13 @@ function getAuditoryOffsetMilliseconds() {
 }
 
 function getCorrectedElapsedMilliseconds(now) {
-    return (now - startTimestamp) + getAuditoryOffsetMilliseconds();
+    const safariOffset = isMobileSafari() ? SAFARI_LAP_OFFSET_MS : 0;
+    return (now - startTimestamp) + getAuditoryOffsetMilliseconds() - safariOffset;
 }
 
 function getCorrectedLapElapsed(now) {
     const visualOffset = getOffsetMilliseconds(visualOffsetInput);
-    const safariOffset = isSafari() ? SAFARI_LAP_OFFSET_MS : 0;
+    const safariOffset = isMobileSafari() ? SAFARI_LAP_OFFSET_MS : 0;
     return Math.max(0, (now - previousLapTimestamp) - visualOffset - safariOffset);
 }
 
