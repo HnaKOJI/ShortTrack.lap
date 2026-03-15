@@ -404,12 +404,28 @@ input[type="text"]::placeholder{color:#c7d2e0}
 .saved-record-heading {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
 }
 
 .saved-record-title {
+    flex: 1;
     text-align: right;
+}
+
+.delete-record-button {
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    background: #fee2e2;
+    color: #dc2626;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.delete-record-button:hover {
+    background: #fecaca;
 }
 
 .export-check-label {

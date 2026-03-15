@@ -122,6 +122,13 @@ function setSavedRecords(records) {
     localStorage.setItem(LAP_MEAS_SAVE_KEY, JSON.stringify(records));
 }
 
+function deleteRecord(index) {
+    const records = getSavedRecords();
+    records.splice(index, 1);
+    setSavedRecords(records);
+    renderSavedRecords();
+}
+
 function renderSavedRecords() {
     const records = getSavedRecords();
     if (records.length === 0) {
@@ -166,8 +173,19 @@ function renderSavedRecords() {
         title.appendChild(nameStrong);
         title.appendChild(meta);
 
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'delete-record-button';
+        deleteButton.textContent = '削除';
+        deleteButton.addEventListener('click', () => {
+            if (window.confirm(`「${String(record.name || '名称未設定')}」を削除しますか？`)) {
+                deleteRecord(index);
+            }
+        });
+
         heading.appendChild(checkboxLabel);
         heading.appendChild(title);
+        heading.appendChild(deleteButton);
 
         const elapsed = document.createElement('p');
         elapsed.textContent = `計測時間: ${formatTime(record.elapsedMilliseconds || 0)}`;
@@ -387,50 +405,76 @@ function exportSavedRecordsToPdf() {
     const style = doc.createElement('style');
     style.textContent = [
         'body { font-family: "Yu Gothic UI", "Segoe UI", sans-serif; margin: 24px; color: #111827; }',
-        'table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px; }',
-        'td { border: 1px solid #d1d5db; padding: 8px; vertical-align: top; text-align: left; }',
-        '.lap-line { margin: 0 0 4px; }',
+        '.record-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }',
+        '.record-card { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-size: 12px; break-inside: avoid; }',
+        '.record-name { font-weight: 700; margin-bottom: 4px; }',
+        '.record-meta { color: #6b7280; font-size: 11px; margin-bottom: 4px; }',
+        '.record-elapsed { margin-bottom: 4px; }',
+        '.lap-line { margin: 0 0 2px; font-weight: 700; display: grid; grid-template-columns: 56px 1fr; align-items: center; }',
+        '.lap-label { padding-right: 8px; font-variant-numeric: tabular-nums; }',
+        '.lap-time { padding-left: 8px; border-left: 1px solid #9ca3af; text-align: right; }',
         '.lap-empty { color: #6b7280; }'
     ].join('');
     doc.head.appendChild(style);
 
-    records.forEach((record) => {
-        const table = doc.createElement('table');
-        const tbody = doc.createElement('tbody');
+    const COLS = 4;
+    for (let rowStart = 0; rowStart < records.length; rowStart += COLS) {
+        const grid = doc.createElement('div');
+        grid.className = 'record-grid';
 
-        const nameRow = doc.createElement('tr');
-        const nameTd = doc.createElement('td');
-        nameTd.textContent = String(record.name || '名称未設定');
-        nameRow.appendChild(nameTd);
-        tbody.appendChild(nameRow);
+        const rowRecords = records.slice(rowStart, rowStart + COLS);
+        rowRecords.forEach((record) => {
+            const card = doc.createElement('div');
+            card.className = 'record-card';
 
-        const elapsedRow = doc.createElement('tr');
-        const elapsedTd = doc.createElement('td');
-        elapsedTd.textContent = formatTime(record.elapsedMilliseconds || 0);
-        elapsedRow.appendChild(elapsedTd);
-        tbody.appendChild(elapsedRow);
+            const nameDiv = doc.createElement('div');
+            nameDiv.className = 'record-name';
+            nameDiv.textContent = String(record.name || '名称未設定');
+            card.appendChild(nameDiv);
 
-        const lapsRow = doc.createElement('tr');
-        const lapsTd = doc.createElement('td');
-        if (Array.isArray(record.laps) && record.laps.length > 0) {
-            record.laps.forEach((lap) => {
-                const line = doc.createElement('div');
-                line.className = 'lap-line';
-                line.textContent = `Lap ${lap.lap}: ${lap.displaySeconds.toFixed(2)}`;
-                lapsTd.appendChild(line);
-            });
-        } else {
-            const empty = doc.createElement('div');
-            empty.className = 'lap-empty';
-            empty.textContent = 'ラップなし';
-            lapsTd.appendChild(empty);
-        }
-        lapsRow.appendChild(lapsTd);
-        tbody.appendChild(lapsRow);
+            if (record.createdAt) {
+                const metaDiv = doc.createElement('div');
+                metaDiv.className = 'record-meta';
+                metaDiv.textContent = formatDateTime(new Date(record.createdAt));
+                card.appendChild(metaDiv);
+            }
 
-        table.appendChild(tbody);
-        doc.body.appendChild(table);
-    });
+            const elapsedDiv = doc.createElement('div');
+            elapsedDiv.className = 'record-elapsed';
+            elapsedDiv.textContent = formatTime(record.elapsedMilliseconds || 0);
+            card.appendChild(elapsedDiv);
+
+            if (Array.isArray(record.laps) && record.laps.length > 0) {
+                record.laps.forEach((lap) => {
+                    const line = doc.createElement('div');
+                    line.className = 'lap-line';
+                    const lapDisplay = lap.elapsedMilliseconds != null
+                        ? formatLapDisplaySeconds(lap.elapsedMilliseconds)
+                        : lap.displaySeconds.toFixed(2);
+                    const lapLabel = doc.createElement('span');
+                    lapLabel.className = 'lap-label';
+                    lapLabel.textContent = `Lap ${lap.lap}`;
+
+                    const lapTime = doc.createElement('span');
+                    lapTime.className = 'lap-time';
+                    lapTime.textContent = lapDisplay;
+
+                    line.appendChild(lapLabel);
+                    line.appendChild(lapTime);
+                    card.appendChild(line);
+                });
+            } else {
+                const empty = doc.createElement('div');
+                empty.className = 'lap-empty';
+                empty.textContent = 'ラップなし';
+                card.appendChild(empty);
+            }
+
+            grid.appendChild(card);
+        });
+
+        doc.body.appendChild(grid);
+    }
 
     exportWindow.document.close();
     exportWindow.focus();
