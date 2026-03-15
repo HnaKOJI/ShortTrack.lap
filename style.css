@@ -437,15 +437,17 @@ input[type="text"]::placeholder{color:#c7d2e0}
 }
 
 .saved-record-heading {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 8px;
+    margin-bottom: 4px;
 }
 
 .saved-record-title {
     min-width: 0;
-    text-align: right;
+    flex: 1;
+    text-align: left;
     overflow-wrap: anywhere;
 }
 
@@ -459,6 +461,14 @@ input[type="text"]::placeholder{color:#c7d2e0}
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+}
+
+.saved-record-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .edit-record-button {
@@ -577,12 +587,16 @@ input[type="text"]::placeholder{color:#c7d2e0}
     }
 
     .saved-record-heading {
-        flex-direction: column;
-        align-items: flex-start;
+        margin-bottom: 4px;
     }
 
     .saved-record-title {
         text-align: left;
+    }
+
+    .saved-record-footer {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .saved-record-actions {

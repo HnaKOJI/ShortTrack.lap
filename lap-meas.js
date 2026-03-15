@@ -235,12 +235,10 @@ function renderSavedRecords() {
 
         const actionGroup = document.createElement('div');
         actionGroup.className = 'saved-record-actions';
-        actionGroup.appendChild(renameButton);
         actionGroup.appendChild(deleteButton);
 
-        heading.appendChild(checkboxLabel);
         heading.appendChild(title);
-        heading.appendChild(actionGroup);
+        heading.appendChild(renameButton);
 
         const elapsed = document.createElement('p');
         elapsed.textContent = `タイム: ${formatTime(record.elapsedMilliseconds || 0)}`;
@@ -296,6 +294,13 @@ function renderSavedRecords() {
         item.appendChild(heading);
         item.appendChild(elapsed);
         item.appendChild(laps);
+
+        const footer = document.createElement('div');
+        footer.className = 'saved-record-footer';
+        footer.appendChild(checkboxLabel);
+        footer.appendChild(actionGroup);
+        item.appendChild(footer);
+
         savedRecords.appendChild(item);
     });
 }
@@ -504,15 +509,15 @@ function exportSavedRecordsToPdf() {
 
     const style = doc.createElement('style');
     style.textContent = [
-        'body { font-family: "Yu Gothic UI", "Segoe UI", sans-serif; margin: 24px; color: #111827; }',
+        'body { font-family: "Yu Gothic UI", "Segoe UI", sans-serif; margin: 24px; color: #111827; font-size: 150%; }',
         '.record-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }',
-        '.record-card { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-size: 12px; break-inside: avoid; }',
+        '.record-card { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-size: 18px; break-inside: avoid; }',
         '.record-name { font-weight: 700; margin-bottom: 4px; }',
-        '.record-meta { color: #6b7280; font-size: 11px; margin-bottom: 4px; }',
+        '.record-meta { color: #6b7280; font-size: 16.5px; margin-bottom: 4px; }',
         '.record-elapsed { margin-bottom: 4px; }',
         '.lap-line { margin: 0 0 2px; font-weight: 700; display: grid; grid-template-columns: 56px minmax(0, 1fr) 72px; align-items: center; column-gap: 8px; }',
         '.lap-label { padding-right: 8px; font-variant-numeric: tabular-nums; }',
-        '.lap-comment { font-weight: 400; color: #374151; font-size: 11px; overflow-wrap: anywhere; }',
+        '.lap-comment { font-weight: 400; color: #374151; font-size: 16.5px; overflow-wrap: anywhere; }',
         '.lap-comment-empty { color: #9ca3af; }',
         '.lap-time { padding-left: 8px; border-left: 1px solid #9ca3af; text-align: right; }',
         '.lap-empty { color: #6b7280; }'
