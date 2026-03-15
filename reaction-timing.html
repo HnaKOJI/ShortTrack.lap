@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>反応タイミング測定アプリ</title>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">反応タイミング測定アプリ</div>
+            <div class="subtitle">視覚または聴覚からの反応速度を測定します</div>
+        </div>
+        <div class="mode-selection">
+            <label><input type="radio" name="mode" value="visual" checked> 視覚モード</label>
+            <label><input type="radio" name="mode" value="auditory"> 聴覚モード</label>
+        </div>
+        <div class="visual-section">
+            <div class="game-section">
+                <div id="gameArea">
+                    <div id="judgementLine"></div>
+                    <div id="note"></div>
+                </div>
+            </div>
+        </div>
+        <div class="auditory-section">
+            <div class="sound-section">
+                <p>音が鳴るまで待ってください</p>
+                <div id="soundIndicator">🔊</div>
+            </div>
+        </div>
+        <div class="buttons">
+            <button id="startButton">スタート</button>
+            <button id="tapButton">タップ</button>
+        </div>
+        <div id="results">
+            <div class="results-grid">
+                <div class="result-panel">
+                    <p class="result-title">視覚モードの計測結果</p>
+                    <div id="visualTrialResults"></div>
+                </div>
+                <div class="result-panel">
+                    <p class="result-title">聴覚モードの計算結果</p>
+                    <div id="auditoryTrialResults"></div>
+                </div>
+            </div>
+            <div id="stats">
+                <p><strong>視覚</strong> 平均: <span id="visualAverage">-</span> s / 最良: <span id="visualBest">-</span> s</p>
+                <p><strong>聴覚</strong> 平均: <span id="auditoryAverage">-</span> s / 最良: <span id="auditoryBest">-</span> s</p>
+            </div>
+        </div>
+        <div class="reset-area">
+            <button id="resetDataButton" type="button">データをリセット</button>
+        </div>
+        <div class="back-link">
+            <a href="index.html">← トップに戻る</a>
+        </div>
+    </div>
+
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const note = document.getElementById('note');
+        const startButton = document.getElementById('startButton');
+        const tapButton = document.getElementById('tapButton');
+        const resetDataButton = document.getElementById('resetDataButton');
+        const visualSection = document.querySelector('.visual-section');
+        const auditorySection = document.querySelector('.auditory-section');
+        const visualTrialResults = document.getElementById('visualTrialResults');
+        const auditoryTrialResults = document.getElementById('auditoryTrialResults');
+        const stats = document.getElementById('stats');
+        const visualAverageSpan = document.getElementById('visualAverage');
+        const visualBestSpan = document.getElementById('visualBest');
+        const auditoryAverageSpan = document.getElementById('auditoryAverage');
+        const auditoryBestSpan = document.getElementById('auditoryBest');
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+        const soundIndicator = document.getElementById('soundIndicator');
+
+        let mode = 'visual';
+        let trials = [];
+        let currentTrial = 0;
+        let startTime;
+        let targetTime;
+        let soundTime;
+        let animationId;
+        let nextTrialTimeoutId;
+        let auditoryDelayTimeoutId;
+        let tapped = false;
+        let audioContext;
+        const STORAGE_KEY = 'reactionTimingModeStates_v1';
+
+        const modeStates = {
+            visual: createEmptyModeState(),
+            auditory: createEmptyModeState()
+        };
+
+        const speed = 400; // 1秒あたりの移動ピクセル数
+        const lineX = 50; // 判定線の位置
+
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playBeep() {
+            if (!audioContext) initAudio();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        function clearPendingTasks() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            if (nextTrialTimeoutId) {
+                clearTimeout(nextTrialTimeoutId);
+                nextTrialTimeoutId = null;
+            }
+            if (auditoryDelayTimeoutId) {
+                clearTimeout(auditoryDelayTimeoutId);
+                auditoryDelayTimeoutId = null;
+            }
+        }
+
+        function createEmptyModeState() {
+            return {
+                trials: [],
+                currentTrial: 0,
+                completed: false
+            };
+        }
+
+        function persistModeStates() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(modeStates));
+        }
+
+        function restoreModeStates() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            try {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.visual && parsed.auditory) {
+                    modeStates.visual = { ...createEmptyModeState(), ...parsed.visual };
+                    modeStates.auditory = { ...createEmptyModeState(), ...parsed.auditory };
+                }
+            } catch (e) {
+                // 壊れた保存データは無視して初期値を使う。
+            }
+        }
+
+        function saveCurrentModeState() {
+            const nextState = {
+                trials: [...trials],
+                currentTrial,
+                completed: currentTrial >= 10
+            };
+
+            // 空の初期状態なら、既存の保存データを上書きしない。
+            if (!hasModeData(nextState)) {
+                return;
+            }
+
+            modeStates[mode] = nextState;
+            persistModeStates();
+            renderTrialResultsPanels();
+            updateModeStatsDisplay('visual');
+            updateModeStatsDisplay('auditory');
+        }
+
+        function hasModeData(state) {
+            return state.trials.length > 0;
+        }
+
+        function formatTrialResults(values) {
+            if (!values || values.length === 0) {
+                return '<p class="result-empty">まだデータがありません</p>';
+            }
+
+            return values.map((value, index) => {
+                const sign = value >= 0 ? '+' : '';
+                return `計測 ${index + 1}   ${sign}${value.toFixed(3)} s`;
+            }).join('<br>');
+        }
+
+        function renderTrialResultsPanels() {
+            visualTrialResults.innerHTML = formatTrialResults(modeStates.visual.trials);
+            auditoryTrialResults.innerHTML = formatTrialResults(modeStates.auditory.trials);
+        }
+
+        function calcStats(values) {
+            if (!values || values.length === 0) {
+                return { avg: null, best: null };
+            }
+            const avg = values.reduce((a, b) => a + b, 0) / values.length;
+            const best = values.reduce((a, b) => Math.abs(a) < Math.abs(b) ? a : b);
+            return { avg, best };
+        }
+
+        function updateModeStatsDisplay(targetMode) {
+            const state = modeStates[targetMode];
+            const result = calcStats(state.trials);
+            const avgText = result.avg === null ? '-' : result.avg.toFixed(3);
+            const bestText = result.best === null ? '-' : result.best.toFixed(3);
+
+            if (targetMode === 'visual') {
+                visualAverageSpan.textContent = avgText;
+                visualBestSpan.textContent = bestText;
+            } else {
+                auditoryAverageSpan.textContent = avgText;
+                auditoryBestSpan.textContent = bestText;
+            }
+        }
+
+        function loadModeState(nextMode) {
+            const state = modeStates[nextMode];
+            trials = [...state.trials];
+            currentTrial = state.currentTrial;
+            tapped = false;
+            startTime = undefined;
+            targetTime = undefined;
+            soundTime = undefined;
+
+            renderTrialResultsPanels();
+            stats.style.display = 'block';
+            note.style.display = 'none';
+            soundIndicator.textContent = '🔊';
+
+            tapButton.style.display = 'none';
+            startButton.style.display = 'block';
+            startButton.textContent = state.completed ? 'もう一度計測' : 'スタート';
+        }
+
+        function resetMeasurement() {
+            clearPendingTasks();
+            trials = [];
+            currentTrial = 0;
+            tapped = false;
+            startTime = undefined;
+            targetTime = undefined;
+            soundTime = undefined;
+
+            note.style.display = 'none';
+            soundIndicator.textContent = '🔊';
+
+            tapButton.style.display = 'none';
+            startButton.style.display = 'block';
+            startButton.textContent = 'スタート';
+        }
+
+        function resetAllStoredData() {
+            clearPendingTasks();
+
+            modeStates.visual = createEmptyModeState();
+            modeStates.auditory = createEmptyModeState();
+            persistModeStates();
+
+            trials = [];
+            currentTrial = 0;
+            tapped = false;
+            startTime = undefined;
+            targetTime = undefined;
+            soundTime = undefined;
+
+            note.style.display = 'none';
+            soundIndicator.textContent = '🔊';
+
+            renderTrialResultsPanels();
+            updateModeStatsDisplay('visual');
+            updateModeStatsDisplay('auditory');
+            stats.style.display = 'block';
+
+            tapButton.style.display = 'none';
+            startButton.style.display = 'block';
+            startButton.textContent = 'スタート';
+        }
+
+        function updateModeSectionVisibility() {
+            visualSection.style.display = mode === 'visual' ? 'block' : 'none';
+            auditorySection.style.display = mode === 'auditory' ? 'block' : 'none';
+        }
+
+        function queueNextTrial() {
+            nextTrialTimeoutId = setTimeout(startTrial, 1000);
+        }
+
+        // モード切り替え
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                saveCurrentModeState();
+                clearPendingTasks();
+                const nextMode = e.target.value;
+                mode = nextMode;
+                updateModeSectionVisibility();
+
+                const nextState = modeStates[nextMode];
+                if (hasModeData(nextState)) {
+                    loadModeState(nextMode);
+                } else {
+                    trials = [];
+                    currentTrial = 0;
+                    tapped = false;
+                    startTime = undefined;
+                    targetTime = undefined;
+                    soundTime = undefined;
+                    renderTrialResultsPanels();
+                    note.style.display = 'none';
+                    soundIndicator.textContent = '🔊';
+                    tapButton.style.display = 'none';
+                    startButton.style.display = 'block';
+                    startButton.textContent = 'スタート';
+                }
+            });
+        });
+        restoreModeStates();
+        const initialMode = document.querySelector('input[name="mode"]:checked')?.value || 'visual';
+        mode = initialMode;
+        updateModeSectionVisibility();
+        renderTrialResultsPanels();
+        updateModeStatsDisplay('visual');
+        updateModeStatsDisplay('auditory');
+        stats.style.display = 'block';
+        if (hasModeData(modeStates[mode])) {
+            loadModeState(mode);
+        }
+
+        function startTrial() {
+            if (currentTrial >= 10) return;
+            tapped = false;
+            if (mode === 'visual') {
+                startVisualTrial();
+            } else {
+                startAuditoryTrial();
+            }
+        }
+
+        function startVisualTrial() {
+            const startX = gameArea.offsetWidth - 20;
+            startTime = performance.now();
+            targetTime = startTime + (startX - lineX) / speed * 1000;
+            note.style.left = startX + 'px';
+            note.style.display = 'block';
+            function animate() {
+                const currentTime = performance.now();
+                const elapsedTime = (currentTime - startTime) / 1000;
+                const x = startX - speed * elapsedTime;
+                if (x <= 0) {
+                    note.style.display = 'none';
+                    if (!tapped) {
+                        currentTrial++;
+                        if (currentTrial < 10) {
+                            queueNextTrial();
+                        } else {
+                            showStats();
+                        }
+                    }
+                    return;
+                }
+                note.style.left = x + 'px';
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function startAuditoryTrial() {
+            if (currentTrial >= 10) return;
+            tapped = false;
+            soundTime = undefined;
+            soundIndicator.textContent = '🔊 準備';
+            // 1〜3秒のランダム遅延
+            const delay = 1000 + Math.random() * 2000;
+            auditoryDelayTimeoutId = setTimeout(() => {
+                soundTime = performance.now();
+                playBeep();
+                soundIndicator.textContent = '🔊 音が鳴りました！';
+            }, delay);
+        }
+
+        function recordError(error) {
+            trials.push(error);
+            currentTrial++;
+            modeStates[mode] = {
+                trials: [...trials],
+                currentTrial,
+                completed: currentTrial >= 10
+            };
+            persistModeStates();
+            renderTrialResultsPanels();
+            updateModeStatsDisplay('visual');
+            updateModeStatsDisplay('auditory');
+            soundIndicator.textContent = '🔊';
+            if (currentTrial < 10) {
+                queueNextTrial();
+            } else {
+                showStats();
+            }
+        }
+
+        function showStats() {
+            stats.style.display = 'block';
+            tapButton.style.display = 'none';
+            startButton.style.display = 'block';
+            startButton.textContent = 'もう一度計測';
+            saveCurrentModeState();
+        }
+
+        function handleTap() {
+            if (tapped || currentTrial >= 10) return;
+            const tapTime = performance.now();
+            let error;
+            if (mode === 'visual') {
+                tapped = true;
+                error = (tapTime - targetTime) / 1000;
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            } else {
+                if (!soundTime) return;
+                tapped = true;
+                error = (tapTime - soundTime) / 1000;
+            }
+            recordError(error);
+        }
+
+        tapButton.addEventListener('touchstart', handleTap);
+        tapButton.addEventListener('mousedown', handleTap);
+
+        resetDataButton.addEventListener('click', () => {
+            resetAllStoredData();
+        });
+
+        startButton.addEventListener('click', () => {
+            resetMeasurement();
+            startButton.style.display = 'none';
+            tapButton.style.display = 'block';
+            if (mode === 'auditory') initAudio();
+            startTrial();
+        });
+    </script>
+</body>
+</html>

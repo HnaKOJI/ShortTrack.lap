@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>ラップ計測</title>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">ラップ計測</div>
+            <div class="subtitle">スタート後にラップを記録し、経過時間と各ラップタイムを表示します</div>
+        </div>
+
+        <div class="grid adjustment-grid">
+            <div class="field">
+                <label for="auditoryOffsetInput">聴覚補正時間（秒）</label>
+                <input id="auditoryOffsetInput" type="text" inputmode="decimal" placeholder="例: 0.180">
+                <div class="input-note">スタート音からスタートボタンを押すまでの時間</div>
+            </div>
+            <div class="field">
+                <label for="visualOffsetInput">視覚補正時間（秒）</label>
+                <input id="visualOffsetInput" type="text" inputmode="decimal" placeholder="例: 0.120">
+                <div class="input-note">ライン通過からラップボタンを押すまでの時間</div>
+            </div>
+        </div>
+
+        <div class="timer-card">
+            <p class="timer-label">経過時間</p>
+            <div class="timer-display">
+                <div id="elapsedTimeMain" class="timer-main">00:00</div>
+                <div id="elapsedTimeMillis" class="timer-millis">.000</div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button id="startButton" type="button">スタート</button>
+            <button id="lapButton" type="button" disabled>ラップ</button>
+        </div>
+
+        <div class="result-panel">
+            <p class="result-title">ラップタイム</p>
+            <div id="lapResults" class="lap-results">
+                <p class="result-empty">まだラップ記録がありません</p>
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="index.html">← トップに戻る</a>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const lapButton = document.getElementById('lapButton');
+        const auditoryOffsetInput = document.getElementById('auditoryOffsetInput');
+        const visualOffsetInput = document.getElementById('visualOffsetInput');
+        const elapsedTimeMain = document.getElementById('elapsedTimeMain');
+        const elapsedTimeMillis = document.getElementById('elapsedTimeMillis');
+        const lapResults = document.getElementById('lapResults');
+
+        let startTimestamp;
+        let previousLapTimestamp;
+        let animationId;
+        let isRunning = false;
+        let lapCount = 0;
+        const REACTION_TIMING_STORAGE_KEY = 'reactionTimingModeStates_v1';
+
+        function calcAverage(values) {
+            if (!Array.isArray(values) || values.length === 0) {
+                return null;
+            }
+
+            return values.reduce((sum, value) => sum + value, 0) / values.length;
+        }
+
+        function applyReactionTimingAverages() {
+            const rawValue = localStorage.getItem(REACTION_TIMING_STORAGE_KEY);
+            if (!rawValue) {
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(rawValue);
+                const auditoryAverage = calcAverage(parsed?.auditory?.trials);
+                const visualAverage = calcAverage(parsed?.visual?.trials);
+
+                if (auditoryAverage !== null) {
+                    auditoryOffsetInput.value = auditoryAverage.toFixed(3);
+                }
+
+                if (visualAverage !== null) {
+                    visualOffsetInput.value = visualAverage.toFixed(3);
+                }
+            } catch (error) {
+                // 反応タイミング側の保存データが壊れている場合は自動入力しない。
+            }
+        }
+
+        function getOffsetMilliseconds(inputElement) {
+            const rawValue = inputElement.value.trim();
+            if (rawValue === '') {
+                return 0;
+            }
+
+            const normalizedValue = rawValue.replace(',', '.');
+            const seconds = Number.parseFloat(normalizedValue);
+            if (!Number.isFinite(seconds)) {
+                return 0;
+            }
+
+            return seconds * 1000;
+        }
+
+        function formatTime(milliseconds) {
+            const totalMilliseconds = Math.max(0, Math.floor(milliseconds));
+            const minutes = Math.floor(totalMilliseconds / 60000);
+            const seconds = Math.floor((totalMilliseconds % 60000) / 1000);
+            const millis = totalMilliseconds % 1000;
+
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
+        }
+
+        function formatElapsedParts(milliseconds) {
+            const totalMilliseconds = Math.max(0, Math.floor(milliseconds));
+            const minutes = Math.floor(totalMilliseconds / 60000);
+            const seconds = Math.floor((totalMilliseconds % 60000) / 1000);
+            const millis = totalMilliseconds % 1000;
+
+            return {
+                main: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
+                millis: `.${String(millis).padStart(3, '0')}`
+            };
+        }
+
+        function renderElapsedTime(milliseconds) {
+            const elapsedParts = formatElapsedParts(milliseconds);
+            elapsedTimeMain.textContent = elapsedParts.main;
+            elapsedTimeMillis.textContent = elapsedParts.millis;
+        }
+
+        function getAuditoryOffsetMilliseconds() {
+            return getOffsetMilliseconds(auditoryOffsetInput);
+        }
+
+        function getVisualOffsetMilliseconds() {
+            return getOffsetMilliseconds(visualOffsetInput);
+        }
+
+        function getCorrectedElapsedMilliseconds(now) {
+            return (now - startTimestamp) + getAuditoryOffsetMilliseconds();
+        }
+
+        function getCorrectedLapElapsed(now) {
+            const visualOffset = getOffsetMilliseconds(visualOffsetInput);
+            return Math.max(0, (now - previousLapTimestamp) + visualOffset);
+        }
+
+        function appendLapResult(lapElapsed) {
+            lapCount += 1;
+
+            if (lapCount === 1) {
+                lapResults.innerHTML = '';
+            }
+
+            const lapRow = document.createElement('div');
+            lapRow.className = 'lap-row';
+            lapRow.innerHTML = `
+                <span>Lap ${lapCount}</span>
+                <span>${formatTime(lapElapsed)}</span>
+            `;
+            lapResults.prepend(lapRow);
+        }
+
+        function updateElapsedTime() {
+            if (!isRunning) {
+                return;
+            }
+
+            const now = performance.now();
+            renderElapsedTime(getCorrectedElapsedMilliseconds(now));
+            animationId = requestAnimationFrame(updateElapsedTime);
+        }
+
+        function resetMeasurement() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            startTimestamp = performance.now();
+            previousLapTimestamp = startTimestamp;
+            lapCount = 0;
+            renderElapsedTime(getAuditoryOffsetMilliseconds());
+            lapResults.innerHTML = '<p class="result-empty">まだラップ記録がありません</p>';
+        }
+
+        function startMeasurement() {
+            resetMeasurement();
+            isRunning = true;
+            lapButton.disabled = false;
+            startButton.textContent = 'ストップ';
+            updateElapsedTime();
+        }
+
+        function stopMeasurement() {
+            if (!isRunning) {
+                return;
+            }
+
+            const now = performance.now();
+            const lapElapsed = getCorrectedLapElapsed(now);
+
+            previousLapTimestamp = now;
+            appendLapResult(lapElapsed);
+            renderElapsedTime(getCorrectedElapsedMilliseconds(now));
+
+            isRunning = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            lapButton.disabled = true;
+            startButton.textContent = 'スタート';
+        }
+
+        function recordLap() {
+            if (!isRunning) {
+                return;
+            }
+
+            const now = performance.now();
+            const lapElapsed = getCorrectedLapElapsed(now);
+            previousLapTimestamp = now;
+            appendLapResult(lapElapsed);
+        }
+
+        applyReactionTimingAverages();
+        startButton.addEventListener('click', () => {
+            if (isRunning) {
+                stopMeasurement();
+                return;
+            }
+
+            startMeasurement();
+        });
+        lapButton.addEventListener('click', recordLap);
+    </script>
+</body>
+</html>
