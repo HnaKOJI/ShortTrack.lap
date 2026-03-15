@@ -333,6 +333,106 @@ input[type="text"]::placeholder{color:#c7d2e0}
     font-size: 14px;
 }
 
+.lap-row-fastest {
+    border-color: #22c55e;
+    background: #ecfdf3;
+    color: #166534;
+    font-weight: 700;
+}
+
+.save-panel {
+    margin-top: var(--gap);
+}
+
+.save-controls {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.export-selection-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+#selectAllExportButton,
+#clearExportSelectionButton {
+    padding: 8px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+}
+
+#saveRecordButton {
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+}
+
+#exportPdfButton {
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    background: #0ea5e9;
+    color: #fff;
+}
+
+.saved-records {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.saved-record-item {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #e6eef8;
+}
+
+.saved-record-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.saved-record-title {
+    text-align: right;
+}
+
+.export-check-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.saved-record-item p {
+    margin: 0;
+    line-height: 1.5;
+    font-size: 13px;
+}
+
+.saved-meta {
+    color: var(--muted);
+    font-size: 12px;
+    margin-left: 6px;
+}
+
 @media (max-width: 600px) {
     .timer-main {
         font-size: 32px;
@@ -344,6 +444,19 @@ input[type="text"]::placeholder{color:#c7d2e0}
 
     .lap-row {
         grid-template-columns: 1fr;
+    }
+
+    .save-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .saved-record-heading {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .saved-record-title {
+        text-align: left;
     }
 }
 
