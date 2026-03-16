@@ -42,6 +42,28 @@ const DISTANCE_TO_LAPS = {
     3000: 27
 };
 
+function hasMobileSafariReactionTimingData() {
+    const rawValue = localStorage.getItem(REACTION_TIMING_STORAGE_KEY);
+    if (!rawValue) {
+        return false;
+    }
+
+    try {
+        const parsed = JSON.parse(rawValue);
+        const visualState = parsed?.visual;
+        const auditoryState = parsed?.auditory;
+        const visualMeasured = Boolean(visualState?.measuredOnMobileSafari) && Array.isArray(visualState?.trials) && visualState.trials.length > 0;
+        const auditoryMeasured = Boolean(auditoryState?.measuredOnMobileSafari) && Array.isArray(auditoryState?.trials) && auditoryState.trials.length > 0;
+        return visualMeasured || auditoryMeasured;
+    } catch (error) {
+        return false;
+    }
+}
+
+function shouldApplySafariOffset() {
+    return isMobileSafari() && hasMobileSafariReactionTimingData();
+}
+
 function calcAverage(values) {
     if (!Array.isArray(values) || values.length === 0) {
         return null;
@@ -892,13 +914,13 @@ function getAuditoryOffsetMilliseconds() {
 }
 
 function getCorrectedElapsedMilliseconds(now) {
-    const safariOffset = isMobileSafari() ? SAFARI_LAP_OFFSET_MS : 0;
+    const safariOffset = shouldApplySafariOffset() ? SAFARI_LAP_OFFSET_MS : 0;
     return (now - startTimestamp) + getAuditoryOffsetMilliseconds() - safariOffset;
 }
 
 function getCorrectedLapElapsed(now) {
     const visualOffset = getOffsetMilliseconds(visualOffsetInput);
-    const safariOffset = isMobileSafari() ? SAFARI_LAP_OFFSET_MS : 0;
+    const safariOffset = shouldApplySafariOffset() ? SAFARI_LAP_OFFSET_MS : 0;
     return Math.max(0, (now - previousLapTimestamp) - visualOffset - safariOffset);
 }
 

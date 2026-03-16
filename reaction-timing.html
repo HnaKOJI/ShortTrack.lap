@@ -142,7 +142,8 @@
             return {
                 trials: [],
                 currentTrial: 0,
-                completed: false
+                completed: false,
+                measuredOnMobileSafari: false
             };
         }
 
@@ -168,7 +169,8 @@
             const nextState = {
                 trials: [...trials],
                 currentTrial,
-                completed: currentTrial >= 10
+                completed: currentTrial >= 10,
+                measuredOnMobileSafari: Boolean(modeStates[mode]?.measuredOnMobileSafari)
             };
 
             // 空の初期状態なら、既存の保存データを上書きしない。
@@ -397,7 +399,8 @@
             modeStates[mode] = {
                 trials: [...trials],
                 currentTrial,
-                completed: currentTrial >= 10
+                completed: currentTrial >= 10,
+                measuredOnMobileSafari: Boolean(modeStates[mode]?.measuredOnMobileSafari) || isMobileSafari()
             };
             persistModeStates();
             renderTrialResultsPanels();
