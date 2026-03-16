@@ -27,6 +27,66 @@
         </div>
 
         <div class="timer-card">
+            <div class="lap-setup-grid">
+                <div class="field">
+                    <label for="distanceSelect">距離 / 周数</label>
+                    <select id="distanceSelect">
+                        <optgroup label="距離">
+                            <option value="distance-500">500m</option>
+                            <option value="distance-1000">1000m</option>
+                            <option value="distance-1500">1500m</option>
+                            <option value="distance-3000">3000m</option>
+                        </optgroup>
+                        <optgroup label="周数">
+                            <option value="laps-1">1周</option>
+                            <option value="laps-2">2周</option>
+                            <option value="laps-3">3周</option>
+                            <option value="laps-4">4周</option>
+                            <option value="laps-5">5周</option>
+                            <option value="laps-6">6周</option>
+                            <option value="laps-7">7周</option>
+                            <option value="laps-8">8周</option>
+                            <option value="laps-9">9周</option>
+                            <option value="laps-10">10周</option>
+                            <option value="laps-11">11周</option>
+                            <option value="laps-12">12周</option>
+                            <option value="laps-13">13周</option>
+                            <option value="laps-14">14周</option>
+                            <option value="laps-15">15周</option>
+                            <option value="laps-16">16周</option>
+                            <option value="laps-17">17周</option>
+                            <option value="laps-18">18周</option>
+                            <option value="laps-19">19周</option>
+                            <option value="laps-20">20周</option>
+                            <option value="laps-21">21周</option>
+                            <option value="laps-22">22周</option>
+                            <option value="laps-23">23周</option>
+                            <option value="laps-24">24周</option>
+                            <option value="laps-25">25周</option>
+                            <option value="laps-26">26周</option>
+                            <option value="laps-27">27周</option>
+                            <option value="laps-28">28周</option>
+                            <option value="laps-29">29周</option>
+                            <option value="laps-30">30周</option>
+                            <option value="laps-custom">30周以上（任意入力）</option>
+                        </optgroup>
+                    </select>
+                    <input
+                        id="customLapInput"
+                        class="custom-lap-input"
+                        type="text"
+                        inputmode="numeric"
+                        value="31"
+                        placeholder="31以上の周数を入力"
+                        aria-label="30周以上の任意周数"
+                        hidden
+                    >
+                </div>
+            </div>
+            <div class="remaining-laps-wrap" aria-live="polite">
+                <p class="remaining-laps-label">残り回数</p>
+                <p id="remainingLaps" class="remaining-laps-value">5周</p>
+            </div>
             <p class="timer-label">経過時間</p>
             <div class="timer-display">
                 <div id="elapsedTimeMain" class="timer-main">00:00</div>
@@ -56,7 +116,11 @@
             <div class="export-selection-controls">
                 <button id="selectAllExportButton" type="button">全選択</button>
                 <button id="clearExportSelectionButton" type="button">全解除</button>
+                <button id="mergeSelectedButton" type="button">統合するデータを選択</button>
+                <button id="confirmMergeButton" type="button" hidden>選択したデータを統合</button>
+                <button id="cancelMergeButton" type="button" hidden>統合選択をやめる</button>
             </div>
+            <p id="selectionNote" class="selection-note">統合しても元データは残ります</p>
             <div id="savedRecords" class="saved-records">
                 <p class="result-empty">保存データはまだありません</p>
             </div>

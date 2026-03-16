@@ -313,6 +313,38 @@ input[type="text"]::placeholder{color:#c7d2e0}
     background: linear-gradient(90deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02));
 }
 
+.lap-setup-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.custom-lap-input {
+    margin-top: 8px;
+}
+
+.remaining-laps-wrap {
+    margin: 2px 0 12px;
+    text-align: center;
+}
+
+.remaining-laps-label {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.remaining-laps-value {
+    margin: 2px 0 0;
+    font-size: 52px;
+    line-height: 1;
+    font-weight: 800;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+}
+
 .adjustment-grid {
     margin-bottom: var(--gap);
 }
@@ -392,7 +424,10 @@ input[type="text"]::placeholder{color:#c7d2e0}
 }
 
 #selectAllExportButton,
-#clearExportSelectionButton {
+#clearExportSelectionButton,
+#mergeSelectedButton,
+#confirmMergeButton,
+#cancelMergeButton {
     padding: 8px 10px;
     font-size: 12px;
     cursor: pointer;
@@ -400,6 +435,30 @@ input[type="text"]::placeholder{color:#c7d2e0}
     border: 1px solid #cbd5e1;
     background: #fff;
     color: #334155;
+}
+
+#mergeSelectedButton {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+#confirmMergeButton {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-color: #93c5fd;
+}
+
+#cancelMergeButton {
+    background: #fff7ed;
+    color: #c2410c;
+    border-color: #fdba74;
+}
+
+.selection-note {
+    margin: 0 0 10px;
+    font-size: 12px;
+    color: var(--muted);
 }
 
 #saveRecordButton {
@@ -469,6 +528,22 @@ input[type="text"]::placeholder{color:#c7d2e0}
     flex-shrink: 0;
 }
 
+.merge-record-button {
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    background: #e2e8f0;
+    color: #334155;
+    white-space: nowrap;
+}
+
+.merge-record-button-active {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
 .saved-record-footer {
     display: flex;
     align-items: center;
@@ -528,6 +603,86 @@ input[type="text"]::placeholder{color:#c7d2e0}
 
 .saved-lap-list {
     margin-top: 2px;
+}
+
+.saved-merged-sections {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.saved-merged-group {
+    min-width: 0;
+}
+
+.saved-merged-sections-two-columns {
+    position: relative;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 14px;
+    row-gap: 10px;
+}
+
+.saved-merged-sections-two-columns::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: #9ca3af;
+    pointer-events: none;
+}
+
+.saved-merged-section {
+    margin-top: 8px;
+    padding-top: 0;
+    border-top: none;
+}
+
+.saved-merged-section:first-of-type {
+    margin-top: 0;
+}
+
+.saved-merged-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.saved-merged-name-input {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.saved-merged-continuation {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.saved-merged-section-meta {
+    margin-bottom: 6px !important;
+    color: var(--muted);
+}
+
+.saved-merged-sections-two-columns .saved-merged-section {
+    margin-top: 0;
+}
+
+.saved-merged-sections-two-columns .saved-merged-group:nth-child(odd) {
+    padding-right: 10px;
+}
+
+.saved-merged-sections-two-columns .saved-merged-group:nth-child(even) {
+    padding-left: 10px;
 }
 
 .saved-lap-columns {
@@ -605,6 +760,14 @@ input[type="text"]::placeholder{color:#c7d2e0}
 }
 
 @media (max-width: 600px) {
+    .lap-setup-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .remaining-laps-value {
+        font-size: 42px;
+    }
+
     .timer-main {
         font-size: 32px;
     }
@@ -623,6 +786,14 @@ input[type="text"]::placeholder{color:#c7d2e0}
 
     .saved-records {
         grid-template-columns: 1fr;
+    }
+
+    .saved-merged-sections-two-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .saved-merged-sections-two-columns::before {
+        content: none;
     }
 
     .saved-record-heading {
