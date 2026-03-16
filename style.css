@@ -448,9 +448,15 @@ input[type="text"]::placeholder{color:#c7d2e0}
 
 .save-controls {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr;
     gap: 10px;
     margin-bottom: 10px;
+}
+
+.save-buttons {
+    width: 100%;
+    display: flex;
+    gap: 10px;
 }
 
 .export-selection-controls {
@@ -498,6 +504,7 @@ input[type="text"]::placeholder{color:#c7d2e0}
 }
 
 #saveRecordButton {
+    width: 100%;
     padding: 10px 14px;
     font-size: 14px;
     cursor: pointer;
@@ -508,6 +515,7 @@ input[type="text"]::placeholder{color:#c7d2e0}
 }
 
 #exportPdfButton {
+    width: 100%;
     padding: 10px 14px;
     font-size: 14px;
     cursor: pointer;
@@ -821,9 +829,15 @@ input[type="text"]::placeholder{color:#c7d2e0}
         grid-template-columns: 72px 1fr;
     }
 
-    .save-controls {
+    /* .save-controls {
         grid-template-columns: 1fr;
     }
+
+    .save-buttons {
+        width: 100%;
+        display: flex;
+        gap: 10px;
+    } */
 
     .saved-records {
         grid-template-columns: 1fr;
@@ -928,6 +942,7 @@ input[type="text"]::placeholder{color:#c7d2e0}
 .time-table caption { font-weight:700; margin-bottom:4px; }
 
 @media (max-width:600px){
+    .adjustment-grid { grid-template-columns: 1fr 1fr; }
     .time-table th, .time-table td { font-size:12px; padding:4px 6px; }
     .time-table caption { font-size:14px; }
 }

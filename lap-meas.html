@@ -106,16 +106,23 @@
                 <span id="currentLapTime">0.00</span>
             </div>
             <div id="lapResults" class="lap-results">
-                <p class="result-empty">まだラップ記録がありません</p>
+                <p class="result-empty"><!-- まだラップ記録がありません --></p>
             </div>
+        </div>
+        
+        <div class="back-link">
+            <a href="index.html">← トップに戻る</a>
         </div>
 
         <div class="result-panel save-panel">
             <p class="result-title">計測データ保存</p>
             <div class="save-controls">
                 <input id="saveNameInput" type="text" placeholder="保存名を入力 (例: A 1-13 or 太郎500m)">
-                <button id="saveRecordButton" type="button">名前を付けて保存</button>
-                <button id="exportPdfButton" type="button">PDF書き出し</button>
+                <div class="save-buttons">
+                    <button id="saveRecordButton" type="button">名前を付けて保存</button>
+                    <button id="exportPdfButton" type="button">PDF書き出し</button>
+                </div>
+                
             </div>
             <div class="export-selection-controls">
                 <button id="selectAllExportButton" type="button">全選択</button>
@@ -128,10 +135,6 @@
             <div id="savedRecords" class="saved-records">
                 <p class="result-empty">保存データはまだありません</p>
             </div>
-        </div>
-
-        <div class="back-link">
-            <a href="index.html">← トップに戻る</a>
         </div>
     </div>
 
