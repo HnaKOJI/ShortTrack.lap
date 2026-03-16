@@ -402,7 +402,11 @@ input[type="text"]::placeholder{color:#c7d2e0}
 
 .lap-name-input {
     width: 100%;
+    display: block;
+    -webkit-appearance: none;
+    appearance: none;
     min-width: 0;
+    min-height: 28px;
     padding: 4px 6px;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
@@ -787,7 +791,8 @@ input[type="text"]::placeholder{color:#c7d2e0}
     }
 
     .lap-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 72px minmax(0, 1fr) 64px;
+        gap: 8px;
     }
 
     .save-controls {
