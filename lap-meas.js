@@ -899,7 +899,7 @@ function mergeSelectedRecords() {
     renderSavedRecords();
 }
 
-const SAFARI_LAP_OFFSET_MS = 200; //safari補正定数
+const SAFARI_LAP_OFFSET_MS = -200; //safari補正定数
 
 function isMobileSafari() {
     const ua = navigator.userAgent;
