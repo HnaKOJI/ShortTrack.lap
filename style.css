@@ -390,13 +390,23 @@ input[type="text"]::placeholder{color:#c7d2e0}
 
 .lap-row {
     display: grid;
-    grid-template-columns: 80px 1fr;
+    grid-template-columns: 80px minmax(0, 1fr) 72px;
     gap: 10px;
     padding: 10px 12px;
     border-radius: 10px;
     background: #fff;
     border: 1px solid #e6eef8;
     font-size: 14px;
+    align-items: center;
+}
+
+.lap-name-input {
+    width: 100%;
+    min-width: 0;
+    padding: 4px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 12px;
 }
 
 .lap-row-fastest {

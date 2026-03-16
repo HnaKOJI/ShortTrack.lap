@@ -916,7 +916,7 @@ function formatLapDisplaySeconds(lapElapsed, lapNumber) {
 
 function appendLapResult(lapElapsed) {
     lapCount += 1;
-    lapRecords.push({ lap: lapCount, elapsed: lapElapsed });
+    lapRecords.push({ lap: lapCount, elapsed: lapElapsed, comment: '' });
     remainingLapCount = Math.max(0, selectedLapTotal - lapCount);
     updateRemainingLapDisplay();
     updateActionButtonsForRemainingLaps();
@@ -946,10 +946,32 @@ function renderLapResults() {
         const isFastest = fastestCandidate && record.lap === fastestCandidate.lap;
         const lapRow = document.createElement('div');
         lapRow.className = `lap-row${isFastest ? ' lap-row-fastest' : ''}`;
-        lapRow.innerHTML = `
-            <span>Lap ${record.lap}</span>
-            <span>${formatLapDisplaySeconds(record.elapsed, record.lap)}</span>
-        `;
+
+        const lapLabel = document.createElement('span');
+        lapLabel.textContent = `Lap ${record.lap}`;
+
+        const lapNameInput = document.createElement('input');
+        lapNameInput.type = 'text';
+        lapNameInput.className = 'lap-name-input';
+        lapNameInput.placeholder = 'Name';
+        lapNameInput.maxLength = 40;
+        lapNameInput.value = String(record.comment || '');
+        lapNameInput.addEventListener('input', () => {
+            const normalizedValue = String(lapNameInput.value || '')
+                .replace(/[\r\n]+/g, ' ')
+                .slice(0, 40);
+            record.comment = normalizedValue;
+            if (lapNameInput.value !== normalizedValue) {
+                lapNameInput.value = normalizedValue;
+            }
+        });
+
+        const lapTime = document.createElement('span');
+        lapTime.textContent = formatLapDisplaySeconds(record.elapsed, record.lap);
+
+        lapRow.appendChild(lapLabel);
+        lapRow.appendChild(lapNameInput);
+        lapRow.appendChild(lapTime);
         lapResults.appendChild(lapRow);
     }
 }
@@ -1039,7 +1061,8 @@ function saveCurrentRecord() {
     const laps = lapRecords.map((record) => ({
         lap: record.lap,
         elapsedMilliseconds: record.elapsed,
-        displaySeconds: Number.parseFloat(formatLapDisplaySeconds(record.elapsed, record.lap))
+        displaySeconds: Number.parseFloat(formatLapDisplaySeconds(record.elapsed, record.lap)),
+        comment: String(record.comment || '').replace(/\s+/g, ' ').trim().slice(0, 40)
     }));
 
     const record = {
