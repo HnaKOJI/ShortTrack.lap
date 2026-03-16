@@ -388,9 +388,31 @@ input[type="text"]::placeholder{color:#c7d2e0}
     gap: 8px;
 }
 
+.lap-current-row {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #e6eef8;
+    font-weight: 700;
+}
+
+.lap-current-row[hidden] {
+    display: none;
+}
+
+.lap-current-row-running {
+    border-color: #22c55e;
+    background: #ecfdf3;
+}
+
 .lap-row {
     display: grid;
-    grid-template-columns: 80px minmax(0, 1fr) 72px;
+    grid-template-columns: 80px 72px minmax(0, 1fr);
     gap: 10px;
     padding: 10px 12px;
     border-radius: 10px;
@@ -791,8 +813,12 @@ input[type="text"]::placeholder{color:#c7d2e0}
     }
 
     .lap-row {
-        grid-template-columns: 72px minmax(0, 1fr) 64px;
+        grid-template-columns: 72px 64px minmax(0, 1fr);
         gap: 8px;
+    }
+
+    .lap-current-row {
+        grid-template-columns: 72px 1fr;
     }
 
     .save-controls {

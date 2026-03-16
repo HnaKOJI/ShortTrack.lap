@@ -7,6 +7,9 @@ const elapsedTimeMillis = document.getElementById('elapsedTimeMillis');
 const distanceSelect = document.getElementById('distanceSelect');
 const customLapInput = document.getElementById('customLapInput');
 const remainingLaps = document.getElementById('remainingLaps');
+const currentLapLabel = document.getElementById('currentLapLabel');
+const currentLapTime = document.getElementById('currentLapTime');
+const currentLapPreview = document.getElementById('currentLapPreview');
 const lapResults = document.getElementById('lapResults');
 const saveNameInput = document.getElementById('saveNameInput');
 const saveRecordButton = document.getElementById('saveRecordButton');
@@ -914,6 +917,24 @@ function formatLapDisplaySeconds(lapElapsed, lapNumber) {
     return (displayMilliseconds / 1000).toFixed(2);
 }
 
+function formatLiveLapSeconds(lapElapsed) {
+    const safeMilliseconds = Math.max(0, Math.floor(lapElapsed));
+    return (safeMilliseconds / 1000).toFixed(2);
+}
+
+function renderCurrentLapPreview(lapElapsed = 0) {
+    if (!isRunning) {
+        currentLapPreview.hidden = true;
+        return;
+    }
+
+    currentLapPreview.hidden = false;
+    const currentLapNumber = lapCount + 1;
+    currentLapLabel.textContent = `Lap ${currentLapNumber}`;
+    currentLapTime.textContent = formatLiveLapSeconds(lapElapsed);
+    currentLapPreview.classList.toggle('lap-current-row-running', isRunning);
+}
+
 function appendLapResult(lapElapsed) {
     lapCount += 1;
     lapRecords.push({ lap: lapCount, elapsed: lapElapsed, comment: '' });
@@ -970,8 +991,8 @@ function renderLapResults() {
         lapTime.textContent = formatLapDisplaySeconds(record.elapsed, record.lap);
 
         lapRow.appendChild(lapLabel);
-        lapRow.appendChild(lapNameInput);
         lapRow.appendChild(lapTime);
+        lapRow.appendChild(lapNameInput);
         lapResults.appendChild(lapRow);
     }
 }
@@ -984,6 +1005,7 @@ function updateElapsedTime() {
     const now = performance.now();
     lastElapsedMilliseconds = getCorrectedElapsedMilliseconds(now);
     renderElapsedTime(lastElapsedMilliseconds);
+    renderCurrentLapPreview(getCorrectedLapElapsed(now));
     animationId = requestAnimationFrame(updateElapsedTime);
 }
 
@@ -1002,6 +1024,7 @@ function resetMeasurement() {
     lapRecords = [];
     lastElapsedMilliseconds = getAuditoryOffsetMilliseconds();
     renderElapsedTime(lastElapsedMilliseconds);
+    renderCurrentLapPreview(0);
     renderLapResults();
 }
 
@@ -1009,6 +1032,7 @@ function startMeasurement() {
     resetMeasurement();
     isRunning = true;
     startButton.textContent = 'ストップ';
+    renderCurrentLapPreview(0);
     updateActionButtonsForRemainingLaps();
     updateElapsedTime();
 }
@@ -1027,6 +1051,7 @@ function stopMeasurement() {
     renderElapsedTime(lastElapsedMilliseconds);
 
     isRunning = false;
+    renderCurrentLapPreview(0);
     if (animationId) {
         cancelAnimationFrame(animationId);
         animationId = null;
@@ -1288,6 +1313,7 @@ applyReactionTimingAverages();
 updateCustomLapInputVisibility();
 updateSelectedLapTotal();
 updateRemainingLapDisplay();
+renderCurrentLapPreview(0);
 renderSavedRecords();
 updateMergeSelectionUi();
 startButton.addEventListener('click', () => {
