@@ -899,7 +899,7 @@ function mergeSelectedRecords() {
     renderSavedRecords();
 }
 
-const SAFARI_LAP_OFFSET_MS = 12;
+const SAFARI_LAP_OFFSET_MS = 200; //safari補正定数
 
 function isMobileSafari() {
     const ua = navigator.userAgent;
@@ -922,6 +922,12 @@ function getCorrectedLapElapsed(now) {
     const visualOffset = getOffsetMilliseconds(visualOffsetInput);
     const safariOffset = shouldApplySafariOffset() ? SAFARI_LAP_OFFSET_MS : 0;
     return Math.max(0, (now - previousLapTimestamp) - visualOffset - safariOffset);
+}
+
+function getStopCorrectedElapsedMilliseconds(now) {
+    const elapsed = getCorrectedElapsedMilliseconds(now);
+    const visualOffset = getOffsetMilliseconds(visualOffsetInput);
+    return Math.max(0, elapsed - visualOffset);
 }
 
 function getLapDisplayMilliseconds(lapElapsed, lapNumber) {
@@ -1069,7 +1075,7 @@ function stopMeasurement() {
 
     previousLapTimestamp = now;
     appendLapResult(lapElapsed);
-    lastElapsedMilliseconds = getCorrectedElapsedMilliseconds(now);
+    lastElapsedMilliseconds = getStopCorrectedElapsedMilliseconds(now);
     renderElapsedTime(lastElapsedMilliseconds);
 
     isRunning = false;
